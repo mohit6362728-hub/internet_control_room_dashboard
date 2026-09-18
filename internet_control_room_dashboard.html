@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER-OPS // Global Internet NOC/SOC Command</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,700;0,800;1,400&family=Orbitron:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --neon-cyan: #00f3ff;
+      --neon-violet: #a855f7;
+      --neon-emerald: #10b981;
+      --neon-red: #ff0055;
+      --neon-amber: #f59e0b;
+      --bg-dark: #020617;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background-color: var(--bg-dark);
+      color: #f1f5f9;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
+
+    /* Cyber Matrix Animated Mesh Background */
+    .cyber-bg {
+      background-image: 
+        radial-gradient(circle at 50% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(0, 243, 255, 0.06) 0%, transparent 50%),
+        linear-gradient(to right, rgba(15, 23, 42, 0.6) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(15, 23, 42, 0.6) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    }
+
+    /* Glassmorphism HUD Panels */
+    .hud-panel {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 243, 255, 0.22);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 243, 255, 0.03);
+      position: relative;
+      border-radius: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    .hud-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      opacity: 0.7;
+    }
+
+    .hud-panel-alert {
+      border-color: rgba(255, 0, 85, 0.7) !important;
+      box-shadow: 0 0 30px rgba(255, 0, 85, 0.3), inset 0 0 20px rgba(255, 0, 85, 0.15) !important;
+    }
+
+    .hud-panel-alert::before {
+      background: linear-gradient(90deg, transparent, var(--neon-red), transparent);
+    }
+
+    /* CRT Scanline Overlay */
+    .crt-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: linear-gradient(to bottom, transparent 50%, rgba(0, 243, 255, 0.025) 51%);
+      background-size: 100% 4px;
+      pointer-events: none;
+      z-index: 99;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Corner HUD Accents */
+    .hud-corner-tl { position: absolute; top: -1px; left: -1px; width: 8px; height: 8px; border-top: 2px solid var(--neon-cyan); border-left: 2px solid var(--neon-cyan); }
+    .hud-corner-tr { position: absolute; top: -1px; right: -1px; width: 8px; height: 8px; border-top: 2px solid var(--neon-cyan); border-right: 2px solid var(--neon-cyan); }
+    .hud-corner-bl { position: absolute; bottom: -1px; left: -1px; width: 8px; height: 8px; border-bottom: 2px solid var(--neon-cyan); border-left: 2px solid var(--neon-cyan); }
+    .hud-corner-br { position: absolute; bottom: -1px; right: -1px; width: 8px; height: 8px; border-bottom: 2px solid var(--neon-cyan); border-right: 2px solid var(--neon-cyan); }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: rgba(2, 6, 23, 0.9); }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
+
+    /* Emergency Siren Animations */
+    @keyframes siren-flash {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.18; }
+    }
+    .siren-overlay {
+      animation: siren-flash 0.8s infinite;
+      background-color: var(--neon-red);
+      pointer-events: none;
+    }
+
+    /* Tab active styles */
+    .tab-btn.active {
+      background: rgba(0, 243, 255, 0.12);
+      border-color: rgba(0, 243, 255, 0.6);
+      color: var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+    }
+  </style>
+</head>
+<body class="cyber-bg min-h-screen flex flex-col justify-between relative overflow-x-hidden">
+  
+  <div id="crtOverlay" class="crt-overlay"></div>
+  <div id="sirenOverlay" class="fixed inset-0 z-50 siren-overlay hidden"></div>
+
+  <!-- HEADER COMMAND BAR -->
+  <header class="border-b border-cyan-900/60 bg-slate-950/90 backdrop-blur-xl px-4 py-2.5 sticky top-0 z-40 flex flex-wrap justify-between items-center gap-2 shadow-2xl">
+    
+    <!-- Title & Status -->
+    <div class="flex items-center space-x-3">
+      <div class="relative p-2 bg-cyan-950/90 border border-cyan-500/50 rounded-lg text-cyan-400 shadow-[0_0_15px_rgba(0,243,255,0.2)]">
+        <i data-lucide="shield-check" class="w-6 h-6 animate-pulse"></i>
+        <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        </span>
+      </div>
+      <div>
+        <h1 class="font-orbitron font-black text-lg sm:text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-emerald-400 flex items-center gap-2">
+          GLOBAL SOC / NOC COMMAND
+          <span class="text-[10px] text-cyan-400 font-mono font-semibold px-2 py-0.5 border border-cyan-800 rounded bg-cyan-950/80">v5.0-HYDRA</span>
+        </h1>
+        <p class="text-[10px] text-slate-400 tracking-widest uppercase flex items-center gap-2">
+          <span>INTERNET BACKBONE ARCHITECTURE</span>
+          <span class="text-cyan-500">||</span>
+          <span id="headerUptime" class="text-emerald-400 font-mono">UPTIME: 99.998%</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Quick Stat Badges & Toggles -->
+    <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
+      
+      <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+        <span class="text-slate-400">DEFCON:</span>
+        <span id="defconBadge" class="font-bold text-emerald-400 font-orbitron">5 [NOMINAL]</span>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+        <span class="text-slate-400">CLOCK:</span>
+        <span id="utcClock" class="text-cyan-400 font-bold font-orbitron">00:00:00 UTC</span>
+      </div>
+
+      <!-- Action & Toggle Toolbar -->
+      <div class="flex items-center gap-1.5 bg-slate-900/90 border border-cyan-900/60 p-1 rounded-lg">
+        <button id="sfxToggleBtn" title="Toggle Synthesizer Sound FX" class="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/80 rounded transition">
+          <i data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+        <button id="crtToggleBtn" title="Toggle CRT Scanline Effect" class="p-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-slate-800/80 rounded transition">
+          <i data-lucide="tv" class="w-4 h-4"></i>
+        </button>
+        <button id="simSpeedBtn" title="Cycle Speed (1x, 5x, Pause)" class="px-2.5 py-1 text-[11px] font-bold text-cyan-300 hover:bg-cyan-950/80 rounded border border-cyan-800/60 font-orbitron">
+          1x SPEED
+        </button>
+        <button id="panicAlertBtn" class="px-3 py-1 bg-rose-950/80 hover:bg-rose-900 border border-rose-600/80 text-rose-300 font-orbitron font-bold text-xs rounded transition flex items-center gap-1 shadow-[0_0_12px_rgba(255,0,85,0.3)]">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5 animate-bounce"></i> PANIC DEFCON 1
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- TAB NAVIGATION & SCENARIO BAR -->
+  <div class="bg-slate-950/80 border-b border-slate-800/80 px-4 py-2 flex flex-wrap justify-between items-center gap-3 z-30">
+    
+    <!-- Multi-Tab Navigation -->
+    <nav class="flex items-center space-x-1.5 overflow-x-auto text-xs font-orbitron font-semibold">
+      <button data-tab="tab-overview" class="tab-btn active px-3.5 py-1.5 rounded-md border border-slate-800 text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> OVERVIEW HUD
+      </button>
+      <button data-tab="tab-threats" class="tab-btn px-3.5 py-1.5 rounded-md border border-slate-800 text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+        <i data-lucide="shield-alert" class="w-4 h-4"></i> THREAT MATRIX & DDOS
+      </button>
+      <button data-tab="tab-cables" class="tab-btn px-3.5 py-1.5 rounded-md border border-slate-800 text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+        <i data-lucide="network" class="w-4 h-4"></i> SUBSEA CABLES
+      </button>
+      <button data-tab="tab-terminal" class="tab-btn px-3.5 py-1.5 rounded-md border border-slate-800 text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+        <i data-lucide="terminal" class="w-4 h-4"></i> AI CO-PILOT CLI
+      </button>
+    </nav>
+
+    <!-- Scenario Simulator Selector -->
+    <div class="flex items-center gap-2 text-xs font-mono">
+      <span class="text-slate-400 text-[11px] hidden sm:inline">SIM SCENARIO:</span>
+      <select id="scenarioSelect" class="bg-slate-900 border border-cyan-800/60 rounded-md text-cyan-300 px-2.5 py-1 font-mono text-xs focus:outline-none focus:border-cyan-400">
+        <option value="NORMAL">Standard Operations</option>
+        <option value="DDOS_SURGE">DDoS Volumetric Attack Surge</option>
+        <option value="CABLE_CUT">Red Sea Subsea Cable Cut</option>
+        <option value="SOLAR_FLARE">Solar Flare Geomagnetic Jitter</option>
+      </select>
+    </div>
+
+  </div>
+
+  <!-- MAIN TAB CONTENT AREA -->
+  <main class="p-4 flex-grow z-20">
+    
+    <!-- TAB 1: OVERVIEW HUD -->
+    <div id="tab-overview" class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <!-- Left Gauges & Metrics Column -->
+      <div class="lg:col-span-3 space-y-4">
+        
+        <!-- Bandwidth & Load Gauge Panel -->
+        <div class="hud-panel p-4">
+          <div class="hud-corner-tl"></div><div class="hud-corner-tr"></div>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider">Global Backbone Throughput</span>
+            <i data-lucide="zap" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <div class="text-2xl font-black font-orbitron text-slate-100">
+              <span id="valBandwidth">842.1</span> <span class="text-xs text-cyan-400 font-normal">Tbps</span>
+            </div>
+            <span id="bwStatusBadge" class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">OPTIMAL</span>
+          </div>
+          <div class="h-28 relative mt-2">
+            <canvas id="bandwidthChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Submarine Cables Status Summary -->
+        <div class="hud-panel p-4">
+          <div class="hud-corner-bl"></div><div class="hud-corner-br"></div>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider">Fiber Cable Health</span>
+            <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between items-center p-2 bg-slate-950/70 border border-slate-800 rounded">
+              <span class="text-slate-300">MAREA Transatlantic</span>
+              <span class="text-emerald-400 font-bold font-mono">100% [220 Tbps]</span>
+            </div>
+            <div class="flex justify-between items-center p-2 bg-slate-950/70 border border-slate-800 rounded">
+              <span class="text-slate-300">SEA-ME-WE 5</span>
+              <span id="cableSeaMeWeStatus" class="text-emerald-400 font-bold font-mono">98% [NOMINAL]</span>
+            </div>
+            <div class="flex justify-between items-center p-2 bg-slate-950/70 border border-slate-800 rounded">
+              <span class="text-slate-300">FASTER Pacific</span>
+              <span class="text-emerald-400 font-bold font-mono">99.4% [60 Tbps]</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DDoS Threat Level Gauge -->
+        <div class="hud-panel p-4">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider">DDoS Threat Vector Index</span>
+            <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="text-xl font-orbitron font-black text-amber-400" id="ddosGaugeVal">24.2 Gbps Attack Rate</div>
+          <p class="text-[10px] text-slate-400 mb-2">Active scrubbing mitigation capacity: 12.4 Tbps</p>
+          <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+            <div id="ddosGaugeBar" class="bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-600 h-full w-[25%] transition-all duration-500"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Center Interactive World Map & Globe Canvas -->
+      <div class="lg:col-span-6 flex flex-col space-y-4">
+        
+        <div class="hud-panel p-4 flex-grow flex flex-col relative min-h-[420px]">
+          <div class="hud-corner-tl"></div><div class="hud-corner-tr"></div><div class="hud-corner-bl"></div><div class="hud-corner-br"></div>
+          
+          <div class="flex flex-wrap justify-between items-center mb-2 z-10">
+            <div>
+              <h2 class="text-sm font-orbitron font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="globe" class="w-4 h-4 text-cyan-400"></i>
+                Global Node Mesh & Subsea Cables Map
+              </h2>
+              <p class="text-[10px] text-slate-400">Click a datacenter node or cable route to lock target telemetry</p>
+            </div>
+            <!-- Animated Radar Widget -->
+            <div class="flex items-center gap-2 bg-slate-950/80 px-2.5 py-1 rounded border border-cyan-900/50">
+              <div class="relative w-4 h-4">
+                <div class="absolute inset-0 rounded-full border border-cyan-500/60"></div>
+                <div class="absolute inset-0 rounded-full border border-cyan-400/80 animate-ping"></div>
+              </div>
+              <span class="text-[10px] text-cyan-300 font-mono">RADAR ACTIVE</span>
+            </div>
+          </div>
+
+          <!-- Interactive Globe/2D Map Canvas -->
+          <div class="relative flex-grow rounded-lg overflow-hidden bg-slate-950/90 border border-cyan-900/40 flex items-center justify-center">
+            <canvas id="globeMapCanvas" class="w-full h-full cursor-pointer absolute inset-0"></canvas>
+            
+            <!-- Floating Target Reticle Box for Selected Node -->
+            <div id="floatingNodeReticle" class="absolute hidden bg-slate-950/90 border border-cyan-400/80 p-2.5 rounded-lg shadow-[0_0_20px_rgba(0,243,255,0.3)] pointer-events-none text-xs max-w-[220px]">
+              <div class="font-orbitron font-bold text-cyan-300 flex justify-between items-center">
+                <span id="reticleNodeTitle">US-EAST-01</span>
+                <span id="reticleNodePing" class="text-[10px] text-emerald-400">12ms</span>
+              </div>
+              <div id="reticleNodeIP" class="text-[10px] text-slate-400 mb-1">IP: 104.16.249.249</div>
+              <div class="grid grid-cols-2 gap-1 text-[10px] text-slate-300 border-t border-slate-800 pt-1">
+                <div>LOAD: <strong id="reticleNodeLoad" class="text-slate-100">64%</strong></div>
+                <div>LOSS: <strong id="reticleNodeLoss" class="text-emerald-400">0.00%</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Node Inspector Box -->
+        <div class="hud-panel p-3.5">
+          <div class="flex flex-wrap justify-between items-center border-b border-slate-800/80 pb-2 mb-2">
+            <div>
+              <span class="text-[10px] text-slate-500 tracking-wider uppercase">Active Target Node Inspector</span>
+              <h3 id="targetNodeName" class="font-orbitron font-bold text-base text-cyan-300">TOKYO TIER-1 HUB (TYO-01)</h3>
+            </div>
+            <div class="flex gap-2">
+              <button id="btnQuickPing" class="px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 border border-cyan-700/80 text-cyan-300 rounded text-xs transition flex items-center gap-1 font-mono">
+                <i data-lucide="radio" class="w-3.5 h-3.5"></i> Diagnostic Ping
+              </button>
+              <button id="btnScrubNode" class="px-2.5 py-1 bg-amber-950 hover:bg-amber-900 border border-amber-700/80 text-amber-300 rounded text-xs transition flex items-center gap-1 font-mono">
+                <i data-lucide="shield" class="w-3.5 h-3.5"></i> Scrub Route
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div class="bg-slate-950/80 p-2 rounded border border-slate-800">
+              <span class="text-slate-500 text-[10px] block">LATENCY</span>
+              <span id="targetNodePingVal" class="font-orbitron font-bold text-emerald-400">18 ms</span>
+            </div>
+            <div class="bg-slate-950/80 p-2 rounded border border-slate-800">
+              <span class="text-slate-500 text-[10px] block">PACKET LOSS</span>
+              <span id="targetNodeLossVal" class="font-orbitron font-bold text-slate-200">0.012%</span>
+            </div>
+            <div class="bg-slate-950/80 p-2 rounded border border-slate-800">
+              <span class="text-slate-500 text-[10px] block">THREAT SCORE</span>
+              <span id="targetNodeThreatVal" class="font-orbitron font-bold text-cyan-400">LOW [0.02]</span>
+            </div>
+            <div class="bg-slate-950/80 p-2 rounded border border-slate-800">
+              <span class="text-slate-500 text-[10px] block">BGP STATUS</span>
+              <span id="targetNodeBgpVal" class="font-orbitron font-bold text-emerald-400">480 PEERS</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Nodes Grid & Event Feed -->
+      <div class="lg:col-span-3 space-y-4">
+        
+        <!-- Live Node Health List -->
+        <div class="hud-panel p-4">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider">Global Core Nodes</span>
+            <span class="text-[10px] text-slate-500 font-mono">8 Tier-1 Centers</span>
+          </div>
+          <div id="overviewNodesList" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Live Cyber Attack Event Feed -->
+        <div class="hud-panel p-4 flex flex-col min-h-[240px]">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-800 pb-2">
+            <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="flame" class="w-3.5 h-3.5 text-rose-500"></i> Real-time SOC Stream
+            </span>
+            <span class="flex h-2 w-2 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </span>
+          </div>
+          <div id="overviewEventLog" class="space-y-2 text-[11px] font-mono overflow-y-auto max-h-[200px] pr-1">
+            <!-- Dynamic incident items -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 2: THREAT MATRIX & DDOS DEFENSE -->
+    <div id="tab-threats" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <!-- Left Column: DDoS Controls & Mitigation Options -->
+      <div class="lg:col-span-4 space-y-4">
+        
+        <div class="hud-panel p-4">
+          <div class="hud-corner-tl"></div><div class="hud-corner-tr"></div>
+          <h3 class="text-sm font-orbitron font-bold text-rose-400 mb-3 flex items-center gap-2">
+            <i data-lucide="shield-alert" class="w-4 h-4"></i> Active DDoS Mitigation Playbook
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Execute automated countermeasures against volumetric or SYN flood attacks.</p>
+          
+          <div class="space-y-3">
+            <button id="btnMitigateBgp" class="w-full p-3 bg-slate-900 hover:bg-cyan-950/80 border border-cyan-800/60 rounded-lg text-left transition flex justify-between items-center group">
+              <div>
+                <span class="text-xs font-bold text-cyan-300 block font-orbitron">1. ACTIVATE BGP ANYCAST</span>
+                <span class="text-[10px] text-slate-400">Distribute traffic across 320 edge locations</span>
+              </div>
+              <span class="px-2 py-0.5 bg-cyan-950 text-cyan-400 text-[10px] rounded border border-cyan-800 group-hover:bg-cyan-900">READY</span>
+            </button>
+
+            <button id="btnMitigateRbh" class="w-full p-3 bg-slate-900 hover:bg-amber-950/80 border border-amber-800/60 rounded-lg text-left transition flex justify-between items-center group">
+              <div>
+                <span class="text-xs font-bold text-amber-300 block font-orbitron">2. REMOTE BLACKHOLE (RTBH)</span>
+                <span class="text-[10px] text-slate-400">Drop malformed packets at upstream carrier level</span>
+              </div>
+              <span class="px-2 py-0.5 bg-amber-950 text-amber-400 text-[10px] rounded border border-amber-800 group-hover:bg-amber-900">STANDBY</span>
+            </button>
+
+            <button id="btnMitigateScrub" class="w-full p-3 bg-slate-900 hover:bg-emerald-950/80 border border-emerald-800/60 rounded-lg text-left transition flex justify-between items-center group">
+              <div>
+                <span class="text-xs font-bold text-emerald-300 block font-orbitron">3. SCRUBBING CENTER REDIRECT</span>
+                <span class="text-[10px] text-slate-400">Filter L7 HTTP/DNS floods with deep packet inspection</span>
+              </div>
+              <span class="px-2 py-0.5 bg-emerald-950 text-emerald-400 text-[10px] rounded border border-emerald-800 group-hover:bg-emerald-900">ACTIVE</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Attack Vectors Chart -->
+        <div class="hud-panel p-4">
+          <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider block mb-2">Vector Breakdown</span>
+          <div class="h-40 relative">
+            <canvas id="attackVectorsChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Center / Right: Live Attack Attack Log Feed & Map -->
+      <div class="lg:col-span-8 space-y-4">
+        
+        <div class="hud-panel p-4">
+          <div class="hud-corner-tl"></div><div class="hud-corner-tr"></div><div class="hud-corner-bl"></div><div class="hud-corner-br"></div>
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-orbitron font-bold text-rose-400 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="crosshair" class="w-4 h-4 text-rose-500"></i> Global Cyber Attack Radar Map
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">Live Threat Feed: 14.8k events/sec</span>
+          </div>
+          
+          <div class="h-64 rounded-lg bg-slate-950 border border-rose-900/30 relative flex items-center justify-center overflow-hidden">
+            <canvas id="threatRadarCanvas" class="w-full h-full absolute inset-0"></canvas>
+          </div>
+        </div>
+
+        <!-- Live Attack Log Grid Table -->
+        <div class="hud-panel p-4">
+          <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider block mb-3">Active Ingress Threat Vectors</span>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 text-[10px]">
+                  <th class="pb-2">TIMESTAMP</th>
+                  <th class="pb-2">SOURCE IP / REGION</th>
+                  <th class="pb-2">TARGET NODE</th>
+                  <th class="pb-2">ATTACK TYPE</th>
+                  <th class="pb-2">VOLUME</th>
+                  <th class="pb-2">ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="threatTableBody" class="divide-y divide-slate-800/60 text-[11px]">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 3: SUBMARINE CABLES & FIBER ROUTES -->
+    <div id="tab-cables" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <div class="lg:col-span-8 space-y-4">
+        <div class="hud-panel p-4 min-h-[400px] flex flex-col">
+          <div class="hud-corner-tl"></div><div class="hud-corner-tr"></div><div class="hud-corner-bl"></div><div class="hud-corner-br"></div>
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="waves" class="w-4 h-4 text-cyan-400"></i> Global Fiber Cable Routes Map
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">Optical Reflector Sensing Active</span>
+          </div>
+          <div class="flex-grow bg-slate-950 rounded-lg border border-cyan-900/30 relative overflow-hidden">
+            <canvas id="cablesMapCanvas" class="w-full h-full absolute inset-0"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cable Route Inspection Table -->
+      <div class="lg:col-span-4 space-y-4">
+        <div class="hud-panel p-4">
+          <h3 class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider mb-3">Subsea Systems Optical Telemetry</h3>
+          <div class="space-y-3 text-xs" id="subseaCableList">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 4: TACTICAL TERMINAL & AI CO-PILOT -->
+    <div id="tab-terminal" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <div class="lg:col-span-8 space-y-4">
+        <div class="hud-panel p-4 flex flex-col h-[520px]">
+          <div class="hud-corner-tl"></div><div class="hud-corner-tr"></div><div class="hud-corner-bl"></div><div class="hud-corner-br"></div>
+          <div class="flex justify-between items-center pb-2 border-b border-slate-800 mb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="bot" class="w-4 h-4 text-cyan-400"></i>
+              <span class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider">AI Co-Pilot & Security Terminal CLI</span>
+            </div>
+            <span class="text-[10px] text-slate-500 font-mono">HYDRA-AI v5.2 ACTIVE</span>
+          </div>
+
+          <!-- Output Window -->
+          <div id="fullTerminalOutput" class="flex-grow bg-slate-950 p-3 rounded-lg border border-cyan-950 text-xs font-mono text-cyan-300 overflow-y-auto space-y-2 mb-3">
+            <div class="text-slate-500">// HYDRA AI SECURITY & NOC COMMAND SYSTEM READY.</div>
+            <div class="text-slate-500">// Type 'help' or 'ai-analyze' to generate an infrastructure assessment.</div>
+          </div>
+
+          <!-- Command Form Input -->
+          <form id="fullTerminalForm" class="flex gap-2">
+            <div class="relative flex-grow">
+              <span class="absolute left-3 top-2.5 text-cyan-500 font-mono text-xs">$</span>
+              <input id="fullTerminalInput" type="text" placeholder="type command (e.g., 'help', 'scan', 'ai-analyze', 'cable-status')..." autocomplete="off" class="w-full bg-slate-950 border border-cyan-900/80 rounded-lg pl-7 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400 font-mono">
+            </div>
+            <button type="submit" class="px-4 py-2 bg-cyan-950 hover:bg-cyan-900 border border-cyan-700 text-cyan-300 text-xs rounded-lg font-orbitron font-bold transition">
+              EXECUTE
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Quick Commands & Presets Column -->
+      <div class="lg:col-span-4 space-y-4">
+        <div class="hud-panel p-4">
+          <h3 class="text-xs font-orbitron font-bold text-cyan-400 uppercase tracking-wider mb-3">AI Quick Diagnostics</h3>
+          <div class="space-y-2 text-xs">
+            <button data-cmd="ai-analyze" class="quick-cmd-btn w-full p-2.5 bg-slate-900 hover:bg-cyan-950 border border-slate-800 text-left text-slate-300 rounded transition font-mono flex items-center justify-between">
+              <span>ai-analyze</span>
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+            </button>
+            <button data-cmd="traceroute TYO-01" class="quick-cmd-btn w-full p-2.5 bg-slate-900 hover:bg-cyan-950 border border-slate-800 text-left text-slate-300 rounded transition font-mono flex items-center justify-between">
+              <span>traceroute TYO-01</span>
+              <i data-lucide="git-commit" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+            <button data-cmd="mitigate --all" class="quick-cmd-btn w-full p-2.5 bg-slate-900 hover:bg-cyan-950 border border-slate-800 text-left text-slate-300 rounded transition font-mono flex items-center justify-between">
+              <span>mitigate --all</span>
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+            </button>
+            <button data-cmd="cable-status" class="quick-cmd-btn w-full p-2.5 bg-slate-900 hover:bg-cyan-950 border border-slate-800 text-left text-slate-300 rounded transition font-mono flex items-center justify-between">
+              <span>cable-status</span>
+              <i data-lucide="waves" class="w-3.5 h-3.5 text-cyan-400"></i>
+            </button>
+            <button data-cmd="override-protocol" class="quick-cmd-btn w-full p-2.5 bg-slate-900 hover:bg-cyan-950 border border-slate-800 text-left text-slate-300 rounded transition font-mono flex items-center justify-between">
+              <span>override-protocol</span>
+              <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-cyan-900/40 bg-slate-950/90 text-slate-500 text-[10px] px-4 py-2 flex flex-wrap justify-between items-center z-20 font-mono">
+    <div class="flex items-center gap-4">
+      <span>ENCRYPTION: <strong class="text-cyan-400">AES-256-GCM</strong></span>
+      <span>ACTIVE SUBSEA SENSORS: <strong class="text-emerald-400">100% ONLINE</strong></span>
+      <span>BGP AS PEERS: <strong class="text-slate-300">74,210</strong></span>
+    </div>
+    <div>
+      CYBERNETIC NOC/SOC HYDRA SYSTEM &copy; 2026 // ALL RIGHTS RESERVED
+    </div>
+  </footer>
+
+  <script>
+    /* =========================================================================
+       1. GLOBAL STATE & DATA ARCHITECTURE
+       ========================================================================= */
+    const appState = {
+      simSpeed: 1, // 0: Paused, 1: Normal, 5: Fast
+      sfxEnabled: true,
+      crtEnabled: true,
+      panicMode: false,
+      selectedNodeId: 'TYO',
+      currentTab: 'tab-overview',
+      scenario: 'NORMAL',
+      metrics: {
+        bandwidth: 842.1,
+        packetLoss: 0.012,
+        latency: 24.2,
+        ddosGbps: 24.2,
+        defcon: 5
+      }
+    };
+
+    // Datacenter Nodes Database with geographical coordinates normalized (0.0 to 1.0)
+    const datacenters = [
+      { id: 'TYO', name: 'Tokyo Interchange (TYO-01)', region: 'APAC', x: 0.82, y: 0.38, ping: 18, loss: 0.01, load: 62, ip: '104.28.14.89' },
+      { id: 'USE', name: 'US-East Ashburn (USE-01)', region: 'AMER', x: 0.28, y: 0.34, ping: 12, loss: 0.00, load: 74, ip: '198.51.100.45' },
+      { id: 'SFO', name: 'Silicon Valley (SFO-02)', region: 'AMER', x: 0.18, y: 0.36, ping: 15, loss: 0.00, load: 81, ip: '192.0.2.102' },
+      { id: 'LON', name: 'London LINX (LON-01)', region: 'EMEA', x: 0.48, y: 0.28, ping: 22, loss: 0.02, load: 58, ip: '185.130.44.12' },
+      { id: 'FRA', name: 'Frankfurt DE-CIX (FRA-01)', region: 'EMEA', x: 0.52, y: 0.30, ping: 24, loss: 0.01, load: 69, ip: '80.81.192.1' },
+      { id: 'SIN', name: 'Singapore Equinix (SIN-01)', region: 'APAC', x: 0.76, y: 0.58, ping: 31, loss: 0.02, load: 49, ip: '103.28.248.1' },
+      { id: 'SYD', name: 'Sydney PIPEIX (SYD-01)', region: 'APAC', x: 0.88, y: 0.80, ping: 42, loss: 0.03, load: 38, ip: '203.0.113.19' },
+      { id: 'JNB', name: 'Johannesburg Core (JNB-01)', region: 'EMEA', x: 0.55, y: 0.72, ping: 84, loss: 0.04, load: 42, ip: '196.25.1.1' },
+      { id: 'SAO', name: 'São Paulo IX (SAO-01)', region: 'AMER', x: 0.34, y: 0.70, ping: 92, loss: 0.02, load: 51, ip: '200.160.0.1' }
+    ];
+
+    // Node connections
+    const meshLinks = [
+      ['SFO', 'USE'], ['SFO', 'TYO'], ['USE', 'LON'],
+      ['LON', 'FRA'], ['FRA', 'SIN'], ['SIN', 'TYO'],
+      ['SIN', 'SYD'], ['TYO', 'SYD'], ['LON', 'JNB'],
+      ['USE', 'SAO'], ['LON', 'SAO']
+    ];
+
+    // Submarine Cable Routes
+    const submarineCables = [
+      { id: 'MAREA', name: 'MAREA (US -> Spain)', capacity: '220 Tbps', health: 100, status: 'NOMINAL', start: [0.28, 0.34], end: [0.48, 0.35] },
+      { id: 'SEAMEWE5', name: 'SEA-ME-WE 5 (Europe -> Asia)', capacity: '24 Tbps', health: 98, status: 'NOMINAL', start: [0.48, 0.32], end: [0.76, 0.58] },
+      { id: 'FASTER', name: 'FASTER (US -> Japan)', capacity: '60 Tbps', health: 99, status: 'NOMINAL', start: [0.18, 0.36], end: [0.82, 0.38] },
+      { id: 'EIG', name: 'Europe India Gateway', capacity: '15 Tbps', health: 95, status: 'DEGRADED', start: [0.50, 0.32], end: [0.68, 0.52] }
+    ];
+
+    /* =========================================================================
+       2. WEB AUDIO SYNTHESIZER SFX ENGINE
+       ========================================================================= */
+    class CyberAudioSynth {
+      constructor() { this.ctx = null; }
+      init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      play(freq = 800, type = 'sine', duration = 0.08, gainVal = 0.04) {
+        if (!appState.sfxEnabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+      }
+      siren() {
+        if (!appState.sfxEnabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 0.4);
+          gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.4);
+        } catch(e) {}
+      }
+    }
+    const audio = new CyberAudioSynth();
+
+    /* =========================================================================
+       3. INTERACTIVE CONTROLS & EVENT LISTENERS
+       ========================================================================= */
+    // SFX Toggle
+    const sfxToggleBtn = document.getElementById('sfxToggleBtn');
+    sfxToggleBtn.addEventListener('click', () => {
+      appState.sfxEnabled = !appState.sfxEnabled;
+      sfxToggleBtn.classList.toggle('text-cyan-400', appState.sfxEnabled);
+      sfxToggleBtn.classList.toggle('text-slate-400', !appState.sfxEnabled);
+      if (appState.sfxEnabled) audio.play(1200, 'sine', 0.1);
+    });
+
+    // CRT Toggle
+    const crtToggleBtn = document.getElementById('crtToggleBtn');
+    const crtOverlay = document.getElementById('crtOverlay');
+    crtToggleBtn.addEventListener('click', () => {
+      appState.crtEnabled = !appState.crtEnabled;
+      crtOverlay.style.opacity = appState.crtEnabled ? '1' : '0';
+      crtToggleBtn.classList.toggle('text-cyan-400', appState.crtEnabled);
+      crtToggleBtn.classList.toggle('text-slate-400', !appState.crtEnabled);
+      audio.play(900, 'sine', 0.05);
+    });
+
+    // Simulation Speed Toggle
+    const simSpeedBtn = document.getElementById('simSpeedBtn');
+    simSpeedBtn.addEventListener('click', () => {
+      if (appState.simSpeed === 1) appState.simSpeed = 5;
+      else if (appState.simSpeed === 5) appState.simSpeed = 0;
+      else appState.simSpeed = 1;
+
+      simSpeedBtn.textContent = `${appState.simSpeed === 0 ? 'PAUSED' : appState.simSpeed + 'x SPEED'}`;
+      audio.play(appState.simSpeed === 0 ? 400 : 1000);
+    });
+
+    // Panic DEFCON 1 Mode Toggle
+    const panicAlertBtn = document.getElementById('panicAlertBtn');
+    const sirenOverlay = document.getElementById('sirenOverlay');
+    panicAlertBtn.addEventListener('click', () => {
+      togglePanicMode(!appState.panicMode);
+    });
+
+    function togglePanicMode(enable) {
+      appState.panicMode = enable;
+      sirenOverlay.classList.toggle('hidden', !enable);
+      
+      document.querySelectorAll('.hud-panel').forEach(p => {
+        p.classList.toggle('hud-panel-alert', enable);
+      });
+
+      const defconBadge = document.getElementById('defconBadge');
+      if (enable) {
+        appState.metrics.defcon = 1;
+        defconBadge.textContent = "1 [EMERGENCY]";
+        defconBadge.className = "font-bold text-rose-500 font-orbitron animate-pulse";
+        audio.siren();
+        addEventLog("DEFCON 1 PANIC MODE ACTIVATED MANUALLY!", "CRITICAL");
+      } else {
+        appState.metrics.defcon = 5;
+        defconBadge.textContent = "5 [NOMINAL]";
+        defconBadge.className = "font-bold text-emerald-400 font-orbitron";
+        audio.play(800, 'sine', 0.1);
+        addEventLog("DEFCON 1 cleared. Emergency protocols stood down.", "INFO");
+      }
+    }
+
+    // Tab Switcher Logic
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+
+        btn.classList.add('active');
+        const targetTab = btn.getAttribute('data-tab');
+        document.getElementById(targetTab).classList.remove('hidden');
+        appState.currentTab = targetTab;
+        audio.play(1100, 'triangle', 0.06);
+      });
+    });
+
+    // Scenario Simulator Change Listener
+    const scenarioSelect = document.getElementById('scenarioSelect');
+    scenarioSelect.addEventListener('change', (e) => {
+      appState.scenario = e.target.value;
+      audio.play(1000, 'square', 0.1);
+
+      if (appState.scenario === 'DDOS_SURGE') {
+        appState.metrics.ddosGbps = 480.0;
+        appState.metrics.bandwidth = 980.5;
+        addEventLog("SCENARIO LOADED: Volumetric DDoS Attack Surge active! Traffic spiking.", "CRITICAL");
+      } else if (appState.scenario === 'CABLE_CUT') {
+        submarineCables.find(c => c.id === 'SEAMEWE5').health = 0;
+        submarineCables.find(c => c.id === 'SEAMEWE5').status = 'CUT DETECTED';
+        document.getElementById('cableSeaMeWeStatus').textContent = '0% [FIBER CUT]';
+        document.getElementById('cableSeaMeWeStatus').className = 'text-rose-500 font-bold font-mono';
+        addEventLog("SCENARIO LOADED: Subsea Cable Fiber Cut in Red Sea sector!", "CRITICAL");
+      } else if (appState.scenario === 'SOLAR_FLARE') {
+        appState.metrics.packetLoss = 0.18;
+        addEventLog("SCENARIO LOADED: Solar Flare ionospheric jitter active.", "WARN");
+      } else {
+        // Normal
+        appState.metrics.ddosGbps = 24.2;
+        appState.metrics.packetLoss = 0.012;
+        submarineCables.find(c => c.id === 'SEAMEWE5').health = 98;
+        submarineCables.find(c => c.id === 'SEAMEWE5').status = 'NOMINAL';
+        document.getElementById('cableSeaMeWeStatus').textContent = '98% [NOMINAL]';
+        document.getElementById('cableSeaMeWeStatus').className = 'text-emerald-400 font-bold font-mono';
+        addEventLog("SCENARIO LOADED: Standard Nominal Operations resumed.", "INFO");
+      }
+    });
+
+    /* =========================================================================
+       4. CHART.JS & REAL-TIME DATA GRAPHING
+       ========================================================================= */
+    // Bandwidth Chart
+    const bwCtx = document.getElementById('bandwidthChart').getContext('2d');
+    const bwChartData = Array(20).fill(840);
+    const bandwidthChart = new Chart(bwCtx, {
+      type: 'line',
+      data: {
+        labels: Array(20).fill(''),
+        datasets: [{
+          data: bwChartData,
+          borderColor: '#00f3ff',
+          borderWidth: 2,
+          backgroundColor: (context) => {
+            const ctx = context.chart.ctx;
+            const gradient = ctx.createLinearGradient(0, 0, 0, 100);
+            gradient.addColorStop(0, 'rgba(0, 243, 255, 0.3)');
+            gradient.addColorStop(1, 'rgba(0, 243, 255, 0.0)');
+            return gradient;
+          },
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: { display: false },
+          y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b', font: { size: 9 } } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    // DDoS Attack Vectors Doughnut Chart
+    const vectorsCtx = document.getElementById('attackVectorsChart').getContext('2d');
+    const attackVectorsChart = new Chart(vectorsCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['SYN Flood', 'DNS Amp', 'UDP Volumetric', 'L7 HTTP/3'],
+        datasets: [{
+          data: [42, 28, 18, 12],
+          backgroundColor: ['#ff0055', '#f59e0b', '#a855f7', '#00f3ff'],
+          borderWidth: 1,
+          borderColor: '#020617'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { color: '#cbd5e1', font: { family: 'JetBrains Mono', size: 10 } } }
+        }
+      }
+    });
+
+    /* =========================================================================
+       5. HTML5 CANVAS MAP & GLOBE RENDERING ENGINE
+       ========================================================================= */
+    const globeCanvas = document.getElementById('globeMapCanvas');
+    const gCtx = globeCanvas.getContext('2d');
+    let mapPackets = [];
+
+    function resizeGlobeCanvas() {
+      if (!globeCanvas.parentElement) return;
+      globeCanvas.width = globeCanvas.parentElement.clientWidth;
+      globeCanvas.height = globeCanvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeGlobeCanvas);
+    resizeGlobeCanvas();
+
+    function spawnMapPacket() {
+      const link = meshLinks[Math.floor(Math.random() * meshLinks.length)];
+      const nodeA = datacenters.find(d => d.id === link[0]);
+      const nodeB = datacenters.find(d => d.id === link[1]);
+      if (nodeA && nodeB) {
+        mapPackets.push({
+          from: nodeA, to: nodeB, progress: 0,
+          speed: 0.008 + Math.random() * 0.012
+        });
+      }
+    }
+
+    // Globe/2D Map Animation Loop
+    function renderGlobeMap() {
+      gCtx.clearRect(0, 0, globeCanvas.width, globeCanvas.height);
+      const w = globeCanvas.width;
+      const h = globeCanvas.height;
+
+      // Draw faint cyber latitude/longitude lines
+      gCtx.strokeStyle = 'rgba(0, 243, 255, 0.04)';
+      gCtx.lineWidth = 1;
+      for (let x = 0; x < w; x += 30) {
+        gCtx.beginPath(); gCtx.moveTo(x, 0); gCtx.lineTo(x, h); gCtx.stroke();
+      }
+      for (let y = 0; y < h; y += 30) {
+        gCtx.beginPath(); gCtx.moveTo(0, y); gCtx.lineTo(w, y); gCtx.stroke();
+      }
+
+      // Draw Submarine Cable Routes
+      submarineCables.forEach(cable => {
+        const x1 = cable.start[0] * w; const y1 = cable.start[1] * h;
+        const x2 = cable.end[0] * w;   const y2 = cable.end[1] * h;
+
+        gCtx.beginPath();
+        gCtx.moveTo(x1, y1);
+        gCtx.lineTo(x2, y2);
+        gCtx.strokeStyle = cable.health === 0 ? '#ff0055' : 'rgba(168, 85, 247, 0.35)';
+        gCtx.lineWidth = cable.health === 0 ? 2 : 1.5;
+        gCtx.setLineDash(cable.health === 0 ? [4, 4] : []);
+        gCtx.stroke();
+        gCtx.setLineDash([]);
+      });
+
+      // Draw Datacenter Links
+      meshLinks.forEach(([idA, idB]) => {
+        const nA = datacenters.find(d => d.id === idA);
+        const nB = datacenters.find(d => d.id === idB);
+        if (nA && nB) {
+          gCtx.beginPath();
+          gCtx.moveTo(nA.x * w, nA.y * h);
+          gCtx.lineTo(nB.x * w, nB.y * h);
+          gCtx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
+          gCtx.lineWidth = 1;
+          gCtx.stroke();
+        }
+      });
+
+      // Update & Draw Flowing Traffic Packets
+      if (appState.simSpeed > 0 && Math.random() < 0.4 * appState.simSpeed) spawnMapPacket();
+
+      for (let i = mapPackets.length - 1; i >= 0; i--) {
+        const p = mapPackets[i];
+        p.progress += p.speed * (appState.simSpeed || 1);
+        if (p.progress >= 1) { mapPackets.splice(i, 1); continue; }
+
+        const px = p.from.x * w + (p.to.x - p.from.x) * w * p.progress;
+        const py = p.from.y * h + (p.to.y - p.from.y) * h * p.progress;
+
+        gCtx.beginPath();
+        gCtx.arc(px, py, 2.5, 0, Math.PI * 2);
+        gCtx.fillStyle = '#00f3ff';
+        gCtx.shadowColor = '#00f3ff';
+        gCtx.shadowBlur = 6;
+        gCtx.fill();
+        gCtx.shadowBlur = 0;
+      }
+
+      // Draw Datacenter Nodes
+      datacenters.forEach(node => {
+        const nx = node.x * w;
+        const ny = node.y * h;
+        const isSelected = node.id === appState.selectedNodeId;
+
+        if (isSelected) {
+          gCtx.beginPath();
+          gCtx.arc(nx, ny, 12, 0, Math.PI * 2);
+          gCtx.fillStyle = 'rgba(0, 243, 255, 0.15)';
+          gCtx.strokeStyle = 'rgba(0, 243, 255, 0.9)';
+          gCtx.lineWidth = 1.5;
+          gCtx.fill();
+          gCtx.stroke();
+        }
+
+        gCtx.beginPath();
+        gCtx.arc(nx, ny, 5, 0, Math.PI * 2);
+        gCtx.fillStyle = '#10b981';
+        gCtx.shadowColor = '#10b981';
+        gCtx.shadowBlur = 8;
+        gCtx.fill();
+        gCtx.shadowBlur = 0;
+
+        gCtx.font = '10px "JetBrains Mono"';
+        gCtx.fillStyle = isSelected ? '#00f3ff' : '#94a3b8';
+        gCtx.fillText(node.id, nx + 8, ny + 3);
+      });
+
+      requestAnimationFrame(renderGlobeMap);
+    }
+    requestAnimationFrame(renderGlobeMap);
+
+    // Canvas Selection Listener & Reticle Hover
+    const floatingReticle = document.getElementById('floatingNodeReticle');
+    globeCanvas.addEventListener('click', (e) => {
+      const rect = globeCanvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      datacenters.forEach(node => {
+        const nx = node.x * globeCanvas.width;
+        const ny = node.y * globeCanvas.height;
+        if (Math.hypot(clickX - nx, clickY - ny) < 18) {
+          selectNode(node.id);
+          
+          // Position floating target reticle box
+          floatingReticle.style.left = `${Math.min(nx + 10, globeCanvas.width - 200)}px`;
+          floatingReticle.style.top = `${Math.max(ny - 60, 10)}px`;
+          floatingReticle.classList.remove('hidden');
+
+          document.getElementById('reticleNodeTitle').textContent = node.name;
+          document.getElementById('reticleNodePing').textContent = `${node.ping}ms`;
+          document.getElementById('reticleNodeIP').textContent = `IP: ${node.ip}`;
+          document.getElementById('reticleNodeLoad').textContent = `${node.load}%`;
+          document.getElementById('reticleNodeLoss').textContent = `${node.loss.toFixed(2)}%`;
+
+          audio.play(1200, 'sine', 0.06);
+        }
+      });
+    });
+
+    /* =========================================================================
+       6. THREAT RADAR CANVAS ENGINE (TAB 2)
+       ========================================================================= */
+    const threatCanvas = document.getElementById('threatRadarCanvas');
+    const tCtx = threatCanvas.getContext('2d');
+    let radarAngle = 0;
+
+    function renderThreatRadar() {
+      if (appState.currentTab === 'tab-threats') {
+        const w = threatCanvas.width = threatCanvas.parentElement.clientWidth;
+        const h = threatCanvas.height = threatCanvas.parentElement.clientHeight;
+        const cx = w / 2; const cy = h / 2;
+        const radius = Math.min(cx, cy) - 20;
+
+        tCtx.clearRect(0, 0, w, h);
+
+        // Concentric Circles
+        tCtx.strokeStyle = 'rgba(255, 0, 85, 0.2)';
+        tCtx.lineWidth = 1;
+        [0.3, 0.6, 0.9].forEach(r => {
+          tCtx.beginPath();
+          tCtx.arc(cx, cy, radius * r, 0, Math.PI * 2);
+          tCtx.stroke();
+        });
+
+        // Sweep Line
+        radarAngle += 0.03 * (appState.simSpeed || 1);
+        tCtx.beginPath();
+        tCtx.moveTo(cx, cy);
+        tCtx.lineTo(cx + Math.cos(radarAngle) * radius, cy + Math.sin(radarAngle) * radius);
+        tCtx.strokeStyle = 'rgba(255, 0, 85, 0.8)';
+        tCtx.lineWidth = 2;
+        tCtx.stroke();
+      }
+      requestAnimationFrame(renderThreatRadar);
+    }
+    requestAnimationFrame(renderThreatRadar);
+
+    /* =========================================================================
+       7. DYNAMIC UI POPULATION & EVENT LOG ENGINE
+       ========================================================================= */
+    function selectNode(id) {
+      appState.selectedNodeId = id;
+      const node = datacenters.find(d => d.id === id);
+      if (!node) return;
+
+      document.getElementById('targetNodeName').textContent = node.name;
+      document.getElementById('targetNodePingVal').textContent = `${node.ping} ms`;
+      document.getElementById('targetNodeLossVal').textContent = `${node.loss}%`;
+      renderNodesList();
+    }
+
+    function renderNodesList() {
+      const container = document.getElementById('overviewNodesList');
+      container.innerHTML = datacenters.map(node => `
+        <div onclick="selectNode('${node.id}')" class="p-2 rounded bg-slate-950/80 border ${
+          node.id === appState.selectedNodeId ? 'border-cyan-500 bg-cyan-950/40' : 'border-slate-800'
+        } cursor-pointer hover:border-cyan-700 transition flex justify-between items-center text-xs">
+          <div>
+            <div class="font-bold text-slate-200 font-mono">${node.id} - ${node.name.split(' ')[0]}</div>
+            <div class="text-[10px] text-slate-500">${node.ip}</div>
+          </div>
+          <div class="text-right">
+            <span class="text-emerald-400 font-bold font-mono">${node.ping} ms</span>
+            <div class="text-[10px] text-slate-400">LOAD: ${node.load}%</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addEventLog(msg, level = 'INFO') {
+      const log = document.getElementById('overviewEventLog');
+      const time = new Date().toISOString().substring(11, 19);
+      let badge = 'bg-cyan-950 text-cyan-400 border-cyan-800';
+      if (level === 'WARN') badge = 'bg-amber-950 text-amber-400 border-amber-800';
+      if (level === 'CRITICAL') badge = 'bg-rose-950 text-rose-400 border-rose-800';
+
+      const div = document.createElement('div');
+      div.className = 'p-1.5 rounded bg-slate-950 border border-slate-800 flex items-start gap-2';
+      div.innerHTML = `
+        <span class="text-[9px] text-slate-500 mt-0.5">${time}</span>
+        <span class="text-[9px] px-1 rounded border ${badge} font-bold">${level}</span>
+        <span class="text-slate-300">${msg}</span>
+      `;
+      log.prepend(div);
+      if (log.children.length > 20) log.removeChild(log.lastChild);
+    }
+
+    // Populate Subsea Cables List in Tab 3
+    function renderSubseaCables() {
+      const list = document.getElementById('subseaCableList');
+      list.innerHTML = submarineCables.map(c => `
+        <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg">
+          <div class="flex justify-between items-center mb-1">
+            <span class="font-bold text-slate-200 font-orbitron">${c.name}</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+              c.health > 80 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+            }">${c.status}</span>
+          </div>
+          <div class="text-[10px] text-slate-400">Capacity: ${c.capacity} | Optical Loss: 0.02 dB/km</div>
+        </div>
+      `).join('');
+    }
+
+    /* =========================================================================
+       8. TERMINAL CLI & AI CO-PILOT COMMAND INTERPRETER
+       ========================================================================= */
+    const fullTerminalOutput = document.getElementById('fullTerminalOutput');
+    const fullTerminalForm = document.getElementById('fullTerminalForm');
+    const fullTerminalInput = document.getElementById('fullTerminalInput');
+
+    function appendTerminalMsg(txt) {
+      const div = document.createElement('div');
+      div.textContent = txt;
+      fullTerminalOutput.appendChild(div);
+      fullTerminalOutput.scrollTop = fullTerminalOutput.scrollHeight;
+    }
+
+    function processCommand(cmd) {
+      const clean = cmd.trim();
+      if (!clean) return;
+
+      appendTerminalMsg(`$ ${clean}`);
+      const parts = clean.toLowerCase().split(' ');
+      const action = parts[0];
+
+      if (action === 'help') {
+        appendTerminalMsg('COMMANDS LIST:');
+        appendTerminalMsg('  ai-analyze       - Generates full AI network status diagnostic');
+        appendTerminalMsg('  traceroute [id]  - Traces subsea hop paths to node');
+        appendTerminalMsg('  mitigate --all   - Deploys full DDoS scrubbing rules');
+        appendTerminalMsg('  cable-status     - Queries OTDR fiber fault sensors');
+        appendTerminalMsg('  clear            - Clears CLI terminal screen');
+      } else if (action === 'ai-analyze') {
+        appendTerminalMsg('[AI HYDRA CO-PILOT DIAGNOSIS]:');
+        appendTerminalMsg('>> Core backbone operational efficiency: 98.4%');
+        appendTerminalMsg('>> Active volumetric DDoS threat rate: ' + appState.metrics.ddosGbps.toFixed(1) + ' Gbps');
+        appendTerminalMsg('>> Recommendation: Maintain Anycast scrubbing centers online for TYO-01 and FRA-01.');
+      } else if (action === 'cable-status') {
+        submarineCables.forEach(c => appendTerminalMsg(`Cable ${c.name}: ${c.status} (${c.health}% Health)`));
+      } else if (action === 'mitigate') {
+        appendTerminalMsg('[SUCCESS] Global scrubbing filters engaged across all 320 Anycast PoPs.');
+        appState.metrics.ddosGbps = 12.0;
+      } else if (action === 'clear') {
+        fullTerminalOutput.innerHTML = '<div class="text-slate-500">// HYDRA AI SECURITY & NOC COMMAND SYSTEM READY.</div>';
+      } else {
+        appendTerminalMsg(`Unknown command: '${clean}'. Type 'help' for manual.`);
+      }
+      audio.play(900, 'sine', 0.04);
+    }
+
+    fullTerminalForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      processCommand(fullTerminalInput.value);
+      fullTerminalInput.value = '';
+    });
+
+    document.querySelectorAll('.quick-cmd-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        processCommand(btn.getAttribute('data-cmd'));
+      });
+    });
+
+    /* =========================================================================
+       9. MAIN REAL-TIME SIMULATION TICKER LOOP
+       ========================================================================= */
+    setInterval(() => {
+      if (appState.simSpeed === 0) return;
+
+      // Clock
+      document.getElementById('utcClock').textContent = new Date().toISOString().substring(11, 19) + ' UTC';
+
+      // Fluctuate Throughput & Telemetry Metrics
+      const bwFluct = (Math.random() - 0.48) * 6 * appState.simSpeed;
+      appState.metrics.bandwidth = Math.max(780, Math.min(1050, appState.metrics.bandwidth + bwFluct));
+      document.getElementById('valBandwidth').textContent = appState.metrics.bandwidth.toFixed(1);
+
+      // Chart update
+      bandwidthChart.data.datasets[0].data.push(appState.metrics.bandwidth);
+      bandwidthChart.data.datasets[0].data.shift();
+      bandwidthChart.update('none');
+
+      // Fluctuate DDoS Attack Rate
+      const ddosFluct = (Math.random() - 0.45) * 2 * appState.simSpeed;
+      appState.metrics.ddosGbps = Math.max(10, appState.metrics.ddosGbps + ddosFluct);
+      document.getElementById('ddosGaugeVal').textContent = `${appState.metrics.ddosGbps.toFixed(1)} Gbps Attack Rate`;
+      document.getElementById('ddosGaugeBar').style.width = `${Math.min(100, (appState.metrics.ddosGbps / 500) * 100)}%`;
+
+    }, 1000);
+
+    /* =========================================================================
+       10. APP INITIALIZATION
+       ========================================================================= */
+    window.addEventListener('load', () => {
+      renderNodesList();
+      renderSubseaCables();
+      selectNode('TYO');
+      addEventLog("Global SOC Command initialization complete. 8 Datacenters connected.", "INFO");
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
